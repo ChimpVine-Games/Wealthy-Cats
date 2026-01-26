@@ -1,0 +1,60 @@
+# ===============================
+# Node / npm
+# ===============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===============================
+# Build outputs
+# ===============================
+dist/
+dist-ssr/
+.vite/
+
+# ===============================
+# Environment variables
+# ===============================
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+
+# ===============================
+# OS / Editor junk
+# ===============================
+.DS_Store
+Thumbs.db
+
+# ===============================
+# IDEs
+# ===============================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ===============================
+# Cache / temp
+# ===============================
+.cache/
+.tmp/
+temp/
+
+# ===============================
+# Coverage / testing
+# ===============================
+coverage/
+
+# ===============================
+# Optional: Phaser / assets temp exports
+# (ignore only if you generate them)
+# ===============================
+*.psd
+*.ase
+*.blend

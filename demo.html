@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Arctic Arithmetic: Fact Family Tether</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #263238;
+            font-family: 'Fredoka', sans-serif;
+            touch-action: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        #game-wrapper {
+            position: relative;
+            width: 1280px;
+            height: 720px;
+            background-color: #e0f7fa;
+            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            transform-origin: center;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .hud-panel {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.9);
+            border: 4px solid #0288d1;
+            border-radius: 12px;
+            padding: 10px;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #top-hud {
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            gap: 30px;
+            min-width: 400px;
+        }
+
+        /* Screens */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(2, 136, 209, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 100;
+            pointer-events: auto;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        button {
+            padding: 20px 60px;
+            font-size: 30px;
+            font-family: 'Fredoka', sans-serif;
+            background: #ffca28;
+            border: none;
+            border-radius: 60px;
+            cursor: pointer;
+            color: #3e2723;
+            box-shadow: 0 6px 0 #f57f17;
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            transform: translateY(6px);
+            box-shadow: none;
+        }
+
+        h1 {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            text-shadow: 4px 4px 0 #01579b;
+            text-align: center;
+            margin-top: 0;
+        }
+
+        p {
+            font-size: 1.5rem;
+            max-width: 800px;
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 20px;
+        }
+
+        .stat-label {
+            font-size: 16px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .stat-val {
+            font-size: 28px;
+            font-weight: bold;
+            color: #0277bd;
+        }
+
+        .heart {
+            color: #f44336;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="game-wrapper">
+        <canvas id="gameCanvas" width="1280" height="720"></canvas>
+
+        <!-- Gameplay UI -->
+        <div id="ui-layer">
+            <div id="top-hud" class="hud-panel hidden">
+                <div class="stat-box">
+                    <span class="stat-label">TIME</span>
+                    <span id="timer-display" class="stat-val">60</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">LEVEL</span>
+                    <span id="level-display" class="stat-val">1</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">LIVES</span>
+                    <span id="lives-display" class="stat-val"><span class="heart">❤❤❤</span></span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">SCORE</span>
+                    <span id="score-display" class="stat-val">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen">
+            <h1>ARCTIC ARITHMETIC</h1>
+            <p>You are Chimpu the Monkey, tethered to the center of the <b>Math Triangle</b>.</p>
+            <p>1. Use <b>WASD / Arrows</b> or <b>Touch Joystick</b> to move.<br>
+                2. Collect <b>Floating Operators</b> (+ - × ÷).<br>
+                3. Drag Operators from your inventory to the <b>Edge Slots</b> on the big triangle.<br>
+                4. Fill all 3 edges to complete the puzzle!</p>
+            <br>
+            <button onclick="startGame()">START ADVENTURE</button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="screen hidden">
+            <h1>GAME OVER</h1>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <br>
+            <button onclick="location.reload()">TRY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ARCTIC ARITHMETIC - WORLD TRIANGLE EDITION
+         * Logical Resolution: 1280x720
+         */
+
+        // --- CONFIGURATION ---
+        const CONSTANTS = {
+            PLAYER_SPEED: 500,
+            PLAYER_RADIUS: 20,
+            ROPE_LENGTH: 320,
+            FRICTION_GROUND: 0.90,
+            FRICTION_ICE: 0.99,
+            SNOWMAN_RANGE: 400,
+            LEVEL_DURATION: 90,
+            TRIANGLE_RADIUS: 300, // Size of the ground puzzle
+            COLORS: {
+                background: '#e0f7fa',
+                tree: '#5d4037',
+                treeLeaves: '#4caf50',
+                player: '#795548',
+                rope: '#3e2723',
+                ice: '#b3e5fc',
+                snowman: '#ffffff',
+                skier: '#f44336'
+            }
+        };
+
+        // --- GLOBAL STATE ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameWrapper = document.getElementById('game-wrapper');
+
+        let lastTime = 0;
+        let gameState = 'MENU';
+        let score = 0;
+        let lives = 3;
+        let level = 1;
+        let levelTime = CONSTANTS.LEVEL_DURATION;
+        let gameScale = 1;
+
+        // Input State
+        const keys = {};
+        const joystick = { active: false, originX: 0, originY: 0, curX: 0, curY: 0, inputX: 0, inputY: 0 };
+        const dragInput = { active: false, item: null, x: 0, y: 0 };
+
+        // --- RESIZE LOGIC ---
+        function resizeGame() {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            const scaleX = windowWidth / 1280;
+            const scaleY = windowHeight / 720;
+            gameScale = Math.min(scaleX, scaleY);
+            gameWrapper.style.transform = `scale(${gameScale})`;
+        }
+        window.addEventListener('resize', resizeGame);
+        window.addEventListener('load', resizeGame);
+        resizeGame();
+
+        // --- MATH UTILS ---
+        class Vector2 {
+            constructor(x, y) { this.x = x; this.y = y; }
+            add(v) { return new Vector2(this.x + v.x, this.y + v.y); }
+            sub(v) { return new Vector2(this.x - v.x, this.y - v.y); }
+            mult(n) { return new Vector2(this.x * n, this.y * n); }
+            mag() { return Math.sqrt(this.x * this.x + this.y * this.y); }
+            normalize() {
+                let m = this.mag();
+                return m === 0 ? new Vector2(0, 0) : new Vector2(this.x / m, this.y / m);
+            }
+            dist(v) { return Math.sqrt((this.x - v.x) ** 2 + (this.y - v.y) ** 2); }
+        }
+        function randomRange(min, max) { return Math.random() * (max - min) + min; }
+        function randomInt(min, max) { return Math.floor(Math.random() * (max - min + 1) + min); }
+
+        // --- GAME OBJECTS ---
+
+        class GameObject {
+            constructor(x, y) {
+                this.pos = new Vector2(x, y);
+                this.vel = new Vector2(0, 0);
+                this.active = true;
+            }
+            update(dt) { }
+            draw(ctx) { }
+        }
+
+        class Player extends GameObject {
+            constructor() {
+                super(0, 60);
+                this.radius = CONSTANTS.PLAYER_RADIUS;
+                this.onIce = false;
+                this.invulnerable = 0;
+            }
+
+            update(dt) {
+                if (this.invulnerable > 0) this.invulnerable -= dt;
+
+                let input = new Vector2(0, 0);
+                if (keys['w'] || keys['ArrowUp']) input.y -= 1;
+                if (keys['s'] || keys['ArrowDown']) input.y += 1;
+                if (keys['a'] || keys['ArrowLeft']) input.x -= 1;
+                if (keys['d'] || keys['ArrowRight']) input.x += 1;
+
+                if (joystick.active || (joystick.inputX !== 0 || joystick.inputY !== 0)) {
+                    input.x = joystick.inputX;
+                    input.y = joystick.inputY;
+                }
+
+                if (input.mag() > 1) input = input.normalize();
+
+                let accel = input.mult(CONSTANTS.PLAYER_SPEED * 5);
+                this.vel = this.vel.add(accel.mult(dt));
+
+                let friction = this.onIce ? CONSTANTS.FRICTION_ICE : CONSTANTS.FRICTION_GROUND;
+                this.vel = this.vel.mult(Math.pow(friction, dt * 60));
+
+                this.pos = this.pos.add(this.vel.mult(dt));
+
+                // Tether Constraint
+                let distFromCenter = this.pos.dist(new Vector2(0, 0));
+                if (distFromCenter > CONSTANTS.ROPE_LENGTH) {
+                    let dir = this.pos.normalize();
+                    this.pos = dir.mult(CONSTANTS.ROPE_LENGTH);
+                    let normal = dir;
+                    let velDotNormal = (this.vel.x * normal.x) + (this.vel.y * normal.y);
+                    if (velDotNormal > 0) {
+                        let rejection = normal.mult(velDotNormal);
+                        this.vel = this.vel.sub(rejection);
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(this.pos.x, this.pos.y);
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = CONSTANTS.COLORS.rope;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(this.pos.x, this.pos.y);
+                if (this.invulnerable > 0 && Math.floor(Date.now() / 100) % 2 === 0) ctx.globalAlpha = 0.5;
+
+                ctx.fillStyle = CONSTANTS.COLORS.player;
+                ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#3e2723'; ctx.lineWidth = 3; ctx.stroke();
+
+                ctx.fillStyle = 'white';
+                ctx.beginPath(); ctx.arc(-7, -6, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(7, -6, 5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.beginPath(); ctx.arc(-7, -6, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(7, -6, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.restore();
+            }
+
+            takeDamage() {
+                if (this.invulnerable > 0) return;
+                lives--;
+                this.invulnerable = 2.0;
+                updateHUD();
+                playSound('damage');
+                screenShake = 15;
+                if (lives <= 0) endGame();
+            }
+        }
+
+        class IcePatch extends GameObject {
+            constructor(x, y) {
+                super(x, y);
+                this.radius = 50;
+                this.timer = 10;
+            }
+            update(dt) {
+                this.timer -= dt;
+                if (this.timer <= 0) this.active = false;
+                let d = this.pos.dist(game.player.pos);
+                if (d < this.radius + game.player.radius) game.player.onIce = true;
+            }
+            draw(ctx) {
+                ctx.fillStyle = CONSTANTS.COLORS.ice;
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        class Santa extends GameObject {
+            constructor() {
+                super(0, -400);
+                this.angle = 0;
+                this.dropTimer = 2;
+            }
+
+            update(dt) {
+                this.angle += dt;
+                this.pos.x = Math.sin(this.angle) * 400;
+
+                this.dropTimer -= dt;
+                if (this.dropTimer <= 0) {
+                    this.dropItem();
+                    this.dropTimer = randomRange(3, 5);
+                }
+            }
+
+            dropItem() {
+                const ops = ['+', '-', '×', '÷'];
+                const randomOp = ops[randomInt(0, 3)];
+                game.items.push(new FloatingOperator(this.pos.x, this.pos.y, randomOp));
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = '#d32f2f';
+                ctx.fillRect(this.pos.x - 25, this.pos.y - 25, 50, 50);
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(this.pos.x - 25, this.pos.y - 30, 50, 8);
+            }
+        }
+
+        class FloatingOperator extends GameObject {
+            constructor(x, y, symbol) {
+                super(x, y);
+                this.symbol = symbol;
+                this.width = 40;
+                this.height = 40;
+                this.vel.y = 60;
+            }
+
+            update(dt) {
+                this.pos = this.pos.add(this.vel.mult(dt));
+                if (this.pos.y > 500) this.active = false;
+
+                if (this.pos.dist(game.player.pos) < CONSTANTS.PLAYER_RADIUS + 20) {
+                    this.collect();
+                }
+            }
+
+            collect() {
+                this.active = false;
+                puzzleManager.addToInventory(this.symbol);
+                playSound('pickup');
+                showMessage(`GOT ${this.symbol}!`, '#ffca28');
+            }
+
+            draw(ctx) {
+                // Draw Background Box
+                ctx.fillStyle = '#ffeb3b';
+                ctx.strokeStyle = '#fbc02d';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                const x = this.pos.x - 20;
+                const y = this.pos.y - 20;
+                const w = 40; const h = 40; const r = 8;
+                ctx.moveTo(x + r, y);
+                ctx.arcTo(x + w, y, x + w, y + h, r);
+                ctx.arcTo(x + w, y + h, x, y + h, r);
+                ctx.arcTo(x, y + h, x, y, r);
+                ctx.arcTo(x, y, x + w, y, r);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#3e2723';
+                ctx.font = '28px Fredoka';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.symbol, this.pos.x, this.pos.y + 2);
+            }
+        }
+
+        class Snowman extends GameObject {
+            constructor(x, y) {
+                super(x, y);
+                this.radius = 25;
+                this.cooldown = randomRange(1, 3);
+            }
+            update(dt) {
+                this.cooldown -= dt;
+                if (this.cooldown <= 0) {
+                    this.shoot();
+                    this.cooldown = randomRange(3, 5);
+                }
+            }
+            shoot() {
+                let dir = game.player.pos.sub(this.pos).normalize();
+                game.projectiles.push(new Projectile(this.pos.x, this.pos.y, dir));
+            }
+            draw(ctx) {
+                ctx.fillStyle = 'white';
+                ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y + 12, 18, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y - 12, 12, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'black';
+                ctx.beginPath(); ctx.arc(this.pos.x - 4, this.pos.y - 14, 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(this.pos.x + 4, this.pos.y - 14, 2.5, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = 'orange';
+                ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y - 10, 3, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        class Projectile extends GameObject {
+            constructor(x, y, dir) {
+                super(x, y);
+                this.vel = dir.mult(200);
+                this.radius = 6;
+                this.life = 3;
+            }
+            update(dt) {
+                this.life -= dt;
+                if (this.life <= 0) this.active = false;
+                this.pos = this.pos.add(this.vel.mult(dt));
+
+                if (this.pos.dist(game.player.pos) < CONSTANTS.PLAYER_RADIUS + this.radius) {
+                    game.player.takeDamage();
+                    this.active = false;
+                }
+
+                if (this.life < 0.1 && Math.random() > 0.5) {
+                    game.icePatches.push(new IcePatch(this.pos.x, this.pos.y));
+                }
+            }
+            draw(ctx) {
+                ctx.fillStyle = '#b2ebf2';
+                ctx.beginPath(); ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        class Skier extends GameObject {
+            constructor() {
+                let isLeft = Math.random() > 0.5;
+                let x = isLeft ? -700 : 700;
+                let y = randomRange(-300, 300);
+                super(x, y);
+                this.vel = new Vector2(isLeft ? 200 : -200, 0);
+                this.radius = 20;
+            }
+            update(dt) {
+                this.pos = this.pos.add(this.vel.mult(dt));
+                if (Math.abs(this.pos.x) > 800) this.active = false;
+
+                if (this.pos.dist(game.player.pos) < this.radius + CONSTANTS.PLAYER_RADIUS) {
+                    game.player.takeDamage();
+                    let kbDir = this.vel.normalize();
+                    game.player.vel = game.player.vel.add(kbDir.mult(400));
+                }
+            }
+            draw(ctx) {
+                ctx.fillStyle = CONSTANTS.COLORS.skier;
+                ctx.fillRect(this.pos.x - 12, this.pos.y - 12, 24, 24);
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(this.pos.x - 18, this.pos.y + 14);
+                ctx.lineTo(this.pos.x + 18, this.pos.y + 14);
+                ctx.stroke();
+            }
+        }
+
+        // --- PUZZLE MANAGER (WORLD SPACE) ---
+        class PuzzleManager {
+            constructor() {
+                this.inventory = [];
+                this.solvedSlots = { left: false, right: false, bottom: false };
+
+                // Define Triangle Geometry in World Space
+                const R = CONSTANTS.TRIANGLE_RADIUS;
+                // Top: (0, -R)
+                // Bot Left: (R * cos(150), R * sin(150))
+                // Bot Right: (R * cos(30), R * sin(30))
+                // Note: Canvas Y is down. -R is Up.
+
+                this.corners = {
+                    top: new Vector2(0, -R),
+                    left: new Vector2(R * Math.cos(2.618), R * Math.sin(2.618)), // 150 deg approx
+                    right: new Vector2(R * Math.cos(0.523), R * Math.sin(0.523)) // 30 deg approx
+                };
+
+                // Correct calculations for equilateral triangle pointing UP (inverted in canvas Y)
+                // Top is (0, -R)
+                // Angles: -90 (Top), 30 (Right), 150 (Left)
+                this.corners.top = new Vector2(0, -R);
+                this.corners.right = new Vector2(R * 0.866, R * 0.5);
+                this.corners.left = new Vector2(-R * 0.866, R * 0.5);
+
+                // Slot Locations (Midpoints)
+                this.slots = {
+                    edgeLeft: new Vector2((this.corners.top.x + this.corners.left.x) / 2, (this.corners.top.y + this.corners.left.y) / 2),
+                    edgeRight: new Vector2((this.corners.top.x + this.corners.right.x) / 2, (this.corners.top.y + this.corners.right.y) / 2),
+                    edgeBottom: new Vector2((this.corners.left.x + this.corners.right.x) / 2, (this.corners.left.y + this.corners.right.y) / 2)
+                };
+
+                this.generatePuzzle();
+            }
+
+            generatePuzzle() {
+                let maxVal = level === 1 ? 5 : 9;
+                this.a = randomInt(2, maxVal);
+                this.b = randomInt(2, maxVal);
+                this.p = this.a * this.b;
+
+                this.bottomOp = '×';
+                this.sideOp = '÷';
+
+                if (level >= 3 && Math.random() > 0.7) {
+                    this.p = this.a + this.b;
+                    this.bottomOp = '+';
+                    this.sideOp = '-';
+                }
+
+                this.solvedSlots = { left: false, right: false, bottom: false };
+            }
+
+            addToInventory(symbol) {
+                if (this.inventory.length < 5) {
+                    this.inventory.push({ val: symbol, id: Date.now() + Math.random() });
+                }
+            }
+
+            checkSolution(droppedSymbol, targetSlotId) {
+                let correct = false;
+                let expected = '';
+
+                if (targetSlotId === 'edgeBottom') expected = this.bottomOp;
+                else if (targetSlotId === 'edgeLeft' || targetSlotId === 'edgeRight') expected = this.sideOp;
+
+                if (droppedSymbol === expected) correct = true;
+
+                if (correct) {
+                    const slotKey = targetSlotId.replace('edge', '').toLowerCase();
+                    this.solvedSlots[slotKey] = true;
+                    playSound('success');
+
+                    if (this.solvedSlots.bottom && this.solvedSlots.left && this.solvedSlots.right) {
+                        showMessage("TRIANGLE COMPLETE!", "green");
+                        score += 500;
+                        levelTime += 20;
+                        setTimeout(() => this.generatePuzzle(), 1500);
+                    } else {
+                        score += 100;
+                    }
+                } else {
+                    playSound('wrong');
+                    showMessage("WRONG OPERATOR!", "red");
+                    game.player.takeDamage();
+                }
+            }
+
+            drawWorld(ctx) {
+                // Draw Large Ground Triangle
+                ctx.strokeStyle = 'rgba(2, 136, 209, 0.4)';
+                ctx.lineWidth = 10;
+                ctx.beginPath();
+                ctx.moveTo(this.corners.top.x, this.corners.top.y);
+                ctx.lineTo(this.corners.left.x, this.corners.left.y);
+                ctx.lineTo(this.corners.right.x, this.corners.right.y);
+                ctx.closePath();
+                ctx.stroke();
+
+                // Draw Corner Numbers
+                this.drawCorner(ctx, this.corners.top, this.p);
+                this.drawCorner(ctx, this.corners.left, this.a);
+                this.drawCorner(ctx, this.corners.right, this.b);
+
+                // Draw Edge Slots
+                this.drawEdgeSlot(ctx, this.slots.edgeLeft, this.solvedSlots.left, 'edgeLeft');
+                this.drawEdgeSlot(ctx, this.slots.edgeRight, this.solvedSlots.right, 'edgeRight');
+                this.drawEdgeSlot(ctx, this.slots.edgeBottom, this.solvedSlots.bottom, 'edgeBottom');
+            }
+
+            drawCorner(ctx, pos, val) {
+                // Pad Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.beginPath(); ctx.arc(pos.x, pos.y + 5, 30, 0, Math.PI * 2); ctx.fill();
+
+                // Pad
+                ctx.fillStyle = '#0288d1';
+                ctx.beginPath(); ctx.arc(pos.x, pos.y, 30, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 30px Fredoka';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(val, pos.x, pos.y);
+            }
+
+            drawEdgeSlot(ctx, pos, isSolved, id) {
+                let size = 40;
+
+                // Background
+                ctx.fillStyle = isSolved ? '#c8e6c9' : '#fff3e0';
+                ctx.strokeStyle = isSolved ? '#4caf50' : '#ff9800';
+                if (!isSolved) ctx.setLineDash([5, 5]);
+                ctx.lineWidth = 3;
+
+                ctx.beginPath();
+                ctx.roundRect(pos.x - size / 2, pos.y - size / 2, size, size, 8);
+                ctx.fill();
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Content
+                if (isSolved) {
+                    let symbol = (id === 'edgeBottom') ? this.bottomOp : this.sideOp;
+                    ctx.fillStyle = '#2e7d32';
+                    ctx.font = '28px Fredoka';
+                    ctx.fillText(symbol, pos.x, pos.y + 2);
+                } else {
+                    ctx.fillStyle = '#ff9800';
+                    ctx.font = '20px Fredoka';
+                    ctx.fillText('?', pos.x, pos.y + 2);
+                }
+            }
+
+            drawInventory(ctx) {
+                // Draw Inventory Bar at bottom screen space
+                // This is called AFTER ctx.restore() in main draw loop
+                const centerX = 1280 / 2;
+                const startY = 650;
+                const width = 350;
+
+                ctx.fillStyle = 'rgba(238, 238, 238, 0.9)';
+                ctx.strokeStyle = '#ccc';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.roundRect(centerX - width / 2, startY, width, 60, 15);
+                ctx.fill();
+                ctx.stroke();
+
+                this.inventory.forEach((item, index) => {
+                    if (dragInput.active && dragInput.item === item) return;
+                    let x = (centerX - width / 2) + 40 + (index * 70);
+                    let y = startY + 30;
+
+                    ctx.fillStyle = '#ffeb3b';
+                    ctx.strokeStyle = '#fbc02d';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.roundRect(x - 25, y - 25, 50, 50, 10);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#3e2723';
+                    ctx.font = '30px Fredoka';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(item.val, x, y + 2);
+                });
+            }
+
+            checkDragStart(screenX, screenY) {
+                // Inventory Check
+                const centerX = 1280 / 2;
+                const startY = 650;
+                const width = 350;
+
+                for (let i = 0; i < this.inventory.length; i++) {
+                    let item = this.inventory[i];
+                    let ix = (centerX - width / 2) + 40 + (i * 70);
+                    let iy = startY + 30;
+
+                    let dx = screenX - ix;
+                    let dy = screenY - iy;
+                    if (dx * dx + dy * dy < 1600) return item; // 40px radius
+                }
+                return null;
+            }
+
+            checkDrop(item, screenX, screenY) {
+                // Convert Screen X/Y back to World X/Y (Relative to Center 640, 360)
+                // Ignoring Shake for simplicity in hit test, or we could pass it in.
+                // Screen Center (640, 360) corresponds to World (0,0)
+
+                let worldX = screenX - 640;
+                let worldY = screenY - 360;
+
+                if (this.checkSlotHit(worldX, worldY, this.slots.edgeLeft, 'edgeLeft')) return;
+                if (this.checkSlotHit(worldX, worldY, this.slots.edgeRight, 'edgeRight')) return;
+                if (this.checkSlotHit(worldX, worldY, this.slots.edgeBottom, 'edgeBottom')) return;
+            }
+
+            checkSlotHit(wx, wy, slotPos, id) {
+                let isSolved = false;
+                if (id === 'edgeLeft') isSolved = this.solvedSlots.left;
+                if (id === 'edgeRight') isSolved = this.solvedSlots.right;
+                if (id === 'edgeBottom') isSolved = this.solvedSlots.bottom;
+
+                if (isSolved) return false;
+
+                let dx = wx - slotPos.x;
+                let dy = wy - slotPos.y;
+
+                // Larger drop tolerance for World Space
+                if (dx * dx + dy * dy < 2500) { // 50px radius
+                    this.checkSolution(dragInput.item.val, id);
+                    this.inventory = this.inventory.filter(i => i !== dragInput.item);
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        // --- MAIN LOOP ---
+        const game = {
+            player: null,
+            santa: null,
+            items: [],
+            enemies: [],
+            projectiles: [],
+            icePatches: []
+        };
+
+        let puzzleManager;
+        let screenShake = 0;
+
+        function init() {
+            window.addEventListener('keydown', e => keys[e.key] = true);
+            window.addEventListener('keyup', e => keys[e.key] = false);
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+
+            // Mouse Support for Desktop testing
+            canvas.addEventListener('mousedown', (e) => {
+                handleTouchStart({ touches: [{ clientX: e.clientX, clientY: e.clientY }] });
+            });
+            canvas.addEventListener('mousemove', (e) => {
+                if (joystick.active || dragInput.active)
+                    handleTouchMove({ touches: [{ clientX: e.clientX, clientY: e.clientY }], preventDefault: () => { } });
+            });
+            canvas.addEventListener('mouseup', handleTouchEnd);
+        }
+
+        function startGame() {
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('top-hud').classList.remove('hidden');
+
+            score = 0; lives = 3; level = 1; levelTime = CONSTANTS.LEVEL_DURATION;
+            game.player = new Player();
+            game.santa = new Santa();
+            game.items = []; game.enemies = []; game.projectiles = []; game.icePatches = [];
+
+            game.enemies.push(new Snowman(-400, -250));
+            game.enemies.push(new Snowman(400, 250));
+
+            puzzleManager = new PuzzleManager();
+
+            gameState = 'PLAYING';
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function endGame() {
+            gameState = 'GAMEOVER';
+            document.getElementById('game-over-screen').classList.remove('hidden');
+            document.getElementById('final-score').innerText = score;
+        }
+
+        function gameLoop(timestamp) {
+            if (gameState !== 'PLAYING') return;
+            let dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+            if (dt > 0.1) dt = 0.1;
+
+            update(dt);
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function update(dt) {
+            levelTime -= dt;
+            if (levelTime <= 0) endGame();
+            updateHUD();
+
+            game.player.onIce = false;
+            game.player.update(dt);
+            game.santa.update(dt);
+
+            game.items = game.items.filter(e => e.active); game.items.forEach(e => e.update(dt));
+            game.enemies = game.enemies.filter(e => e.active); game.enemies.forEach(e => e.update(dt));
+            game.projectiles = game.projectiles.filter(e => e.active); game.projectiles.forEach(e => e.update(dt));
+            game.icePatches = game.icePatches.filter(e => e.active); game.icePatches.forEach(e => e.update(dt));
+
+            if (Math.random() < 0.005 * level) game.enemies.push(new Skier());
+
+            if (screenShake > 0) screenShake *= 0.9;
+            if (screenShake < 0.5) screenShake = 0;
+        }
+
+        function draw() {
+            let shakeX = (Math.random() - 0.5) * screenShake;
+            let shakeY = (Math.random() - 0.5) * screenShake;
+
+            ctx.save();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Game World (Centered)
+            ctx.save();
+            ctx.translate(canvas.width / 2 + shakeX, canvas.height / 2 + shakeY);
+
+            // Draw Puzzle on Ground (Under Player)
+            if (puzzleManager) puzzleManager.drawWorld(ctx);
+
+            // Tree (Center)
+            ctx.fillStyle = CONSTANTS.COLORS.tree;
+            ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = CONSTANTS.COLORS.treeLeaves;
+            ctx.globalAlpha = 0.8;
+            ctx.beginPath(); ctx.arc(0, -25, 40, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-20, -10, 30, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(20, -10, 30, 0, Math.PI * 2); ctx.fill();
+            ctx.globalAlpha = 1.0;
+
+            // Boundary Ring (Visual Guide for rope)
+            ctx.strokeStyle = '#b2ebf2';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([15, 15]);
+            ctx.beginPath(); ctx.arc(0, 0, CONSTANTS.ROPE_LENGTH, 0, Math.PI * 2); ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Entities
+            game.icePatches.forEach(e => e.draw(ctx));
+            game.items.forEach(e => e.draw(ctx));
+            game.enemies.forEach(e => e.draw(ctx));
+            game.projectiles.forEach(e => e.draw(ctx));
+            game.player.draw(ctx);
+            game.santa.draw(ctx);
+
+            ctx.restore(); // Restore to Screen Space for UI
+
+            // Draw Joystick
+            if (joystick.active) {
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(joystick.originX, joystick.originY, 50, 0, Math.PI * 2); ctx.stroke();
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.beginPath(); ctx.arc(joystick.curX, joystick.curY, 25, 0, Math.PI * 2); ctx.fill();
+            }
+
+            // Draw Inventory (UI)
+            if (puzzleManager) puzzleManager.drawInventory(ctx);
+
+            // Draw Dragged Item
+            if (dragInput.active && dragInput.item) {
+                ctx.fillStyle = '#ffeb3b';
+                ctx.strokeStyle = '#fbc02d';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.roundRect(dragInput.x - 25, dragInput.y - 25, 50, 50, 10);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#3e2723';
+                ctx.font = '32px Fredoka';
+                ctx.fillText(dragInput.item.val, dragInput.x, dragInput.y + 10);
+            }
+
+            ctx.restore();
+        }
+
+        // --- UI HELPERS ---
+        function updateHUD() {
+            document.getElementById('timer-display').innerText = Math.ceil(levelTime);
+            document.getElementById('level-display').innerText = level;
+            document.getElementById('score-display').innerText = score;
+            let hearts = ''; for (let i = 0; i < lives; i++) hearts += '❤';
+            document.getElementById('lives-display').innerHTML = `<span class="heart">${hearts}</span>`;
+        }
+
+        function showMessage(text, color) {
+            let div = document.createElement('div');
+            div.innerText = text;
+            div.style.position = 'absolute';
+            div.style.left = '50%';
+            div.style.top = '40%';
+            div.style.transform = 'translate(-50%, -50%)';
+            div.style.color = color;
+            div.style.fontSize = '40px';
+            div.style.fontWeight = 'bold';
+            div.style.textShadow = '3px 3px white';
+            div.style.pointerEvents = 'none';
+            div.style.transition = 'top 1s, opacity 1s';
+            div.style.zIndex = '200';
+            document.body.appendChild(div);
+
+            setTimeout(() => { div.style.top = '30%'; div.style.opacity = '0'; }, 50);
+            setTimeout(() => div.remove(), 1000);
+        }
+
+        // --- INPUT HANDLING ---
+        function getCanvasCoords(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = 1280 / rect.width;
+            const scaleY = 720 / rect.height;
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function handleTouchStart(e) {
+            const touch = e.touches[0];
+            const coords = getCanvasCoords(touch.clientX, touch.clientY);
+
+            // 1. Check UI Drag First
+            if (puzzleManager) {
+                let draggedItem = puzzleManager.checkDragStart(coords.x, coords.y);
+                if (draggedItem) {
+                    dragInput.active = true;
+                    dragInput.item = draggedItem;
+                    dragInput.x = coords.x;
+                    dragInput.y = coords.y;
+                    return; // Block Joystick
+                }
+            }
+
+            // 2. Joystick
+            joystick.active = true;
+            joystick.originX = coords.x;
+            joystick.originY = coords.y;
+            joystick.curX = coords.x;
+            joystick.curY = coords.y;
+            joystick.inputX = 0; joystick.inputY = 0;
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const coords = getCanvasCoords(touch.clientX, touch.clientY);
+
+            // 1. Update Drag
+            if (dragInput.active) {
+                dragInput.x = coords.x;
+                dragInput.y = coords.y;
+                return;
+            }
+
+            // 2. Update Joystick
+            if (!joystick.active) return;
+
+            let dx = coords.x - joystick.originX;
+            let dy = coords.y - joystick.originY;
+
+            let dist = Math.sqrt(dx * dx + dy * dy);
+            let maxDist = 60;
+
+            if (dist > maxDist) {
+                let angle = Math.atan2(dy, dx);
+                dx = Math.cos(angle) * maxDist;
+                dy = Math.sin(angle) * maxDist;
+            }
+
+            joystick.curX = joystick.originX + dx;
+            joystick.curY = joystick.originY + dy;
+            joystick.inputX = dx / maxDist;
+            joystick.inputY = dy / maxDist;
+        }
+
+        function handleTouchEnd(e) {
+            // 1. Drop Drag
+            if (dragInput.active) {
+                if (puzzleManager) puzzleManager.checkDrop(dragInput.item, dragInput.x, dragInput.y);
+                dragInput.active = false;
+                dragInput.item = null;
+                return;
+            }
+
+            // 2. End Joystick
+            joystick.active = false;
+            joystick.inputX = 0; joystick.inputY = 0;
+        }
+
+        function playSound(type) { /* placeholder */ }
+
+        init();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,403 @@
+{
+    "meta": {
+        "game": "WealthyCats",
+        "version": "mvp-0.1",
+        "notes": "This is a grouped deck structure. Replace/extend with exact card list when full deck photos are available."
+    },
+    "decks": {
+        "actionCards": {
+            "deckId": "draw",
+            "description": "Main draw deck. Cards are drawn during each round.",
+            "cards": [
+                {
+                    "id": "draw_maintenance_01",
+                    "type": "MAINTENANCE",
+                    "title": "Maintenance",
+                    "mandatory": true,
+                    "affects": "ALL",
+                    "timing": "IMMEDIATE",
+                    "effect": {
+                        "op": "MOVE_CASH",
+                        "params": {
+                            "amount": 2,
+                            "from": "cash",
+                            "to": "maintenance",
+                            "target": "ALL"
+                        }
+                    }
+                },
+                {
+                    "id": "draw_candy_01",
+                    "type": "INDULGENCE",
+                    "title": "Candy / Indulgence",
+                    "mandatory": true,
+                    "affects": "SELF",
+                    "timing": "IMMEDIATE",
+                    "effect": {
+                        "op": "MOVE_CASH",
+                        "params": {
+                            "amount": 2,
+                            "from": "cash",
+                            "to": "indulgence",
+                            "target": "SELF"
+                        }
+                    }
+                },
+                {
+                    "id": "draw_cash_10_01",
+                    "type": "CASH_GAIN",
+                    "title": "Cash +10",
+                    "mandatory": true,
+                    "affects": "SELF",
+                    "timing": "IMMEDIATE",
+                    "effect": {
+                        "op": "CASH_DELTA",
+                        "params": {
+                            "amount": 10,
+                            "target": "SELF"
+                        }
+                    }
+                },
+                {
+                    "id": "draw_cash_02_01",
+                    "type": "CASH_GAIN",
+                    "title": "Cash +2",
+                    "mandatory": true,
+                    "affects": "SELF",
+                    "timing": "IMMEDIATE",
+                    "effect": {
+                        "op": "CASH_DELTA",
+                        "params": {
+                            "amount": 2,
+                            "target": "SELF"
+                        }
+                    }
+                },
+                {
+                    "id": "draw_production_01",
+                    "type": "PRODUCTION",
+                    "title": "Production",
+                    "mandatory": false,
+                    "affects": "SELF",
+                    "timing": "IMMEDIATE",
+                    "effect": {
+                        "op": "ADD_GOODS",
+                        "params": {
+                            "maxSets": 3,
+                            "costPerSet": 2
+                        }
+                    }
+                },
+                {
+                    "id": "draw_sales_01",
+                    "type": "SALES",
+                    "title": "Sales",
+                    "mandatory": true,
+                    "affects": "SELF",
+                    "timing": "IMMEDIATE",
+                    "effect": {
+                        "op": "DRAW_FROM_DECK",
+                        "params": {
+                            "deck": "order",
+                            "count": 1,
+                            "mode": "CHOOSE_ONE_VISIBLE"
+                        }
+                    }
+                },
+                {
+                    "id": "draw_emergency_01",
+                    "type": "EMERGENCY_DEPOSIT",
+                    "title": "Emergency Reserve",
+                    "mandatory": false,
+                    "affects": "SELF",
+                    "timing": "IMMEDIATE",
+                    "effect": {
+                        "op": "MOVE_CASH",
+                        "params": {
+                            "amount": "USER_INPUT",
+                            "from": "cash",
+                            "to": "emergency",
+                            "max": "cash"
+                        }
+                    }
+                },
+                {
+                    "id": "draw_longterm_01",
+                    "type": "LONGTERM_DEPOSIT",
+                    "title": "Long-term Investment",
+                    "mandatory": false,
+                    "affects": "SELF",
+                    "timing": "IMMEDIATE",
+                    "effect": {
+                        "op": "MOVE_CASH",
+                        "params": {
+                            "amount": "USER_INPUT",
+                            "from": "cash",
+                            "to": "longTerm",
+                            "max": "cash"
+                        }
+                    }
+                },
+                {
+                    "id": "draw_wealthy_trigger_01",
+                    "type": "WEALTHY_TRIGGER",
+                    "title": "Wealthy!",
+                    "mandatory": true,
+                    "affects": "SELF",
+                    "timing": "IMMEDIATE",
+                    "effect": {
+                        "op": "DRAW_FROM_DECK",
+                        "params": {
+                            "deck": "wealthyLucky",
+                            "count": 1,
+                            "mode": "AUTO_APPLY"
+                        }
+                    }
+                }
+            ]
+        },
+        "orderCards": {
+            "deckId": "order",
+            "description": "Purple order cards chosen/used during Sales actions.",
+            "cards": [
+                {
+                    "id": "order_01",
+                    "type": "ORDER",
+                    "title": "Order: 3 Jars (8/ea)",
+                    "mandatory": false,
+                    "effect": {
+                        "op": "SELL_GOODS",
+                        "params": {
+                            "quantity": 3,
+                            "payout": 24
+                        }
+                    }
+                },
+                {
+                    "id": "order_02",
+                    "type": "ORDER",
+                    "title": "Order: 3 Jars (7/ea)",
+                    "mandatory": false,
+                    "effect": {
+                        "op": "SELL_GOODS",
+                        "params": {
+                            "quantity": 3,
+                            "payout": 21
+                        }
+                    }
+                },
+                {
+                    "id": "order_03",
+                    "type": "ORDER",
+                    "title": "Order: 3 Jars (6/ea)",
+                    "mandatory": false,
+                    "effect": {
+                        "op": "SELL_GOODS",
+                        "params": {
+                            "quantity": 3,
+                            "payout": 18
+                        }
+                    }
+                },
+                {
+                    "id": "order_04",
+                    "type": "ORDER",
+                    "title": "Order: 2 Jars (10/ea)",
+                    "mandatory": false,
+                    "effect": {
+                        "op": "SELL_GOODS",
+                        "params": {
+                            "quantity": 2,
+                            "payout": 20
+                        }
+                    }
+                },
+                {
+                    "id": "order_05",
+                    "type": "ORDER",
+                    "title": "Order: 2 Jars (8/ea)",
+                    "mandatory": false,
+                    "effect": {
+                        "op": "SELL_GOODS",
+                        "params": {
+                            "quantity": 2,
+                            "payout": 16
+                        }
+                    }
+                },
+                {
+                    "id": "order_06",
+                    "type": "ORDER",
+                    "title": "Order: 2 Jars (7/ea)",
+                    "mandatory": false,
+                    "effect": {
+                        "op": "SELL_GOODS",
+                        "params": {
+                            "quantity": 2,
+                            "payout": 14
+                        }
+                    }
+                },
+                {
+                    "id": "order_07",
+                    "type": "ORDER",
+                    "title": "Order: 2 Jars (5/ea)",
+                    "mandatory": false,
+                    "effect": {
+                        "op": "SELL_GOODS",
+                        "params": {
+                            "quantity": 2,
+                            "payout": 10
+                        }
+                    }
+                },
+                {
+                    "id": "order_08",
+                    "type": "ORDER",
+                    "title": "Order: 1 Jar (10/ea)",
+                    "mandatory": false,
+                    "effect": {
+                        "op": "SELL_GOODS",
+                        "params": {
+                            "quantity": 1,
+                            "payout": 10
+                        }
+                    }
+                },
+                {
+                    "id": "order_09",
+                    "type": "ORDER",
+                    "title": "Order: 1 Jar (9/ea)",
+                    "mandatory": false,
+                    "effect": {
+                        "op": "SELL_GOODS",
+                        "params": {
+                            "quantity": 1,
+                            "payout": 9
+                        }
+                    }
+                },
+                {
+                    "id": "order_10",
+                    "type": "ORDER",
+                    "title": "Order: 1 Jar (7/ea)",
+                    "mandatory": false,
+                    "effect": {
+                        "op": "SELL_GOODS",
+                        "params": {
+                            "quantity": 1,
+                            "payout": 7
+                        }
+                    }
+                }
+            ]
+        },
+        "wealthyLuckyCards": {
+            "deckId": "wealthyLucky",
+            "description": "Lucky deck drawn only when Wealthy trigger occurs.",
+            "cards": [
+                {
+                    "id": "lucky_01",
+                    "type": "LUCKY_GAIN",
+                    "title": "Bonus +3 Cash",
+                    "mandatory": true,
+                    "affects": "SELF",
+                    "timing": "IMMEDIATE",
+                    "effect": {
+                        "op": "CASH_DELTA",
+                        "params": {
+                            "amount": 3,
+                            "target": "SELF"
+                        }
+                    }
+                }
+            ]
+        },
+        "loanCards": {
+            "deckId": "loan",
+            "description": "Loan cards for borrowing; interest applies at end of round until repaid.",
+            "cards": [
+                {
+                    "id": "loan_01",
+                    "type": "LOAN",
+                    "title": "Loan +10 (Interest 2/round)",
+                    "mandatory": false,
+                    "affects": "SELF",
+                    "timing": "IMMEDIATE",
+                    "effect": {
+                        "op": "TAKE_LOAN",
+                        "params": {
+                            "principal": 10,
+                            "interestPerRound": 2
+                        }
+                    }
+                }
+            ]
+        },
+        "questCards": {
+            "deckId": "quest",
+            "description": "Optional missions for bonus points.",
+            "cards": [
+                {
+                    "id": "quest_01",
+                    "type": "QUEST",
+                    "title": "Mission: Save+Invest >= 20",
+                    "mandatory": false,
+                    "affects": "SELF",
+                    "timing": "PASSIVE",
+                    "effect": {
+                        "op": "SET_QUEST",
+                        "params": {
+                            "condition": {
+                                "metric": "savedPlusInvested",
+                                "gte": 20
+                            },
+                            "reward": {
+                                "type": "POINTS",
+                                "amount": 10
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "globalRules": {
+        "rounds": 4,
+        "cardsPerPlayerPerRound": 7,
+        "startingCash": 30,
+        "roundStart": [
+            {
+                "op": "MOVE_CASH",
+                "params": {
+                    "amount": 5,
+                    "from": "cash",
+                    "to": "basic",
+                    "target": "ALL"
+                }
+            }
+        ],
+        "endOfRound": [
+            {
+                "op": "APPLY_INTEREST_ON_LOANS",
+                "params": {
+                    "interestPerLoan": 2,
+                    "payTo": "maintenanceOrIndulgence"
+                }
+            },
+            {
+                "op": "APPLY_RETURNS",
+                "params": {
+                    "emergency": {
+                        "per": 10,
+                        "reward": 1
+                    },
+                    "longTerm": {
+                        "per": 10,
+                        "reward": 2
+                    }
+                }
+            }
+        ]
+    }
+}
