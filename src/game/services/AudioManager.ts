@@ -70,15 +70,8 @@ export class AudioManager {
     }
 
     public playMusic(key: string, loop: boolean = true) {
-        if (!this.scene) return;
-
-        if (this.music) {
-            this.music.stop();
-            this.music.destroy();
-        }
-
-        this.music = this.scene.sound.add(key, { loop, volume: this.musicMuted ? 0 : this.musicVolume });
-        this.music.play();
+        // Audio removed for now
+        return;
     }
 
     public stopMusic() {
@@ -88,8 +81,8 @@ export class AudioManager {
     }
 
     public playSFX(key: string) {
-        if (!this.scene || this.sfxMuted) return;
-        this.scene.sound.play(key, { volume: this.sfxVolume });
+        // Audio removed for now
+        return;
     }
 
     public getMusicVolume(): number {

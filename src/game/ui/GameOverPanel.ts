@@ -1,20 +1,15 @@
 import { GameObjects, Scene } from 'phaser';
-import { IconButton } from './IconButton';
 import { UILayers } from '../utils/UILayers';
+import { AudioManager } from '../services/AudioManager';
 
 export class GameOverPanel {
     private scene: Scene;
     private bgLayer: GameObjects.Container;
     private contentLayer: GameObjects.Container;
-    private buttons: IconButton[] = [];
 
     constructor(
         scene: Scene,
-        win: boolean,
-        level: number | string,
         onRetry: () => void,
-        onHome: () => void,
-        onNext?: () => void,
         winnerName?: string,
         playerStats?: any[]
     ) {
@@ -76,15 +71,11 @@ export class GameOverPanel {
             }).setOrigin(0.5);
             this.contentLayer.add(winTitle);
 
-            // Replay and Home Buttons
-            const buttonY = height / 2 - 100;
-            this.addLabeledButton(scene, -150, buttonY - (height / 2), 'retry_icon', 'REPLAY', () => {
+            // Play Again Button (Centered below Winner Title)
+            const buttonY = (panelHeight / 2) + 140;
+            this.createPlayAgainButton(scene, 0, buttonY, () => {
                 this.destroy();
                 onRetry();
-            });
-            this.addLabeledButton(scene, 150, buttonY - (height / 2), 'home_icon', 'HOME', () => {
-                this.destroy();
-                onHome();
             });
         }
     }
@@ -137,22 +128,66 @@ export class GameOverPanel {
         });
     }
 
-    private addLabeledButton(scene: Scene, x: number, y: number, texture: string, labelText: string, callback: () => void) {
-        const btn = new IconButton(scene, x, y, texture, callback);
-        const label = scene.add.text(x, y + 70, labelText, {
-            fontFamily: 'Arial Black',
-            fontSize: '22px',
-            color: '#FFFFFF',
-            stroke: '#000000',
-            strokeThickness: 4
-        }).setOrigin(0.5);
+    private createPlayAgainButton(scene: Scene, x: number, y: number, callback: () => void) {
+        const btn = scene.add.container(x, y);
+        const width = 360;
+        const height = 90;
 
-        this.buttons.push(btn);
-        this.contentLayer.add([btn.sprite, label]);
+        // Outer Border/Stroke (Cream/Light Yellow)
+        const outer = scene.add.graphics();
+        outer.fillStyle(0xFFFBE4, 1);
+        outer.fillRoundedRect(-width / 2, -height / 2, width, height, 45);
+        btn.add(outer);
+
+        // Inner Fill (Gold/Yellow)
+        const inner = scene.add.graphics();
+        inner.fillStyle(0xFFC300, 1);
+        inner.fillRoundedRect(-width / 2 + 8, -height / 2 + 8, width - 16, height - 16, 37);
+        btn.add(inner);
+
+        // Glossy Highlight (Subtle top overlay)
+        const gloss = scene.add.graphics();
+        gloss.fillStyle(0xffffff, 0.2);
+        gloss.fillRoundedRect(-width / 2 + 8, -height / 2 + 8, width - 16, (height - 16) / 2, { tl: 37, tr: 37, bl: 0, br: 0 });
+        btn.add(gloss);
+
+        const txt = scene.add.text(0, 0, 'PLAY AGAIN', {
+            fontFamily: 'Outfit, Arial Black',
+            fontSize: '40px',
+            fontStyle: 'bold',
+            color: '#FFFFFF',
+            stroke: '#E67E22',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        btn.add(txt);
+
+        // Interaction
+        const hitArea = new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height);
+        btn.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains, true);
+
+        btn.on('pointerover', () => {
+            scene.tweens.add({ targets: btn, scale: 1.05, duration: 100 });
+        });
+        btn.on('pointerout', () => {
+            scene.tweens.add({ targets: btn, scale: 1, duration: 100 });
+        });
+        btn.on('pointerdown', () => {
+            scene.tweens.add({
+                targets: btn,
+                scale: 0.95,
+                duration: 50,
+                yoyo: true,
+                onComplete: () => {
+                    AudioManager.getInstance().playSFX('click');
+                    callback();
+                }
+            });
+        });
+
+        this.contentLayer.add(btn);
     }
 
     public destroy() {
-        this.buttons.forEach(btn => btn.destroy());
         this.bgLayer.destroy();
         this.contentLayer.destroy();
     }

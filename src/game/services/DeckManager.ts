@@ -26,6 +26,10 @@ export class DeckManager {
         });
     }
 
+    public resetDecks() {
+        this.initializeDecks();
+    }
+
     public shuffleDeck(deckId: string) {
         const deck = this.decks.get(deckId);
         if (deck) {

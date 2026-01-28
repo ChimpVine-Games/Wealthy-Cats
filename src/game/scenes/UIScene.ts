@@ -40,10 +40,19 @@ export class UIScene extends Scene {
     create() {
         this.input.setTopOnly(true);
 
-        // Reset state
+        // Reset state variables to prevent stale references on restart
+        if (this.gameOverPanel) {
+            this.gameOverPanel.destroy();
+            this.gameOverPanel = null;
+        }
+        this.activeCard = null;
+        this.cardOverlay = null;
+        this.isCardVisible = false;
+
         this.setupButtons(50);
         this.setupDrawButton();
         this.setupHUD();
+        this.setupDebugButton(); // Add debug shortcut button
 
         this.gameEvents.on('show-gameover', (data: any) => this.showGameOver(data), this);
         this.gameEvents.on('update-hud', (data: any) => this.onUpdateHUD(data), this);
@@ -76,16 +85,15 @@ export class UIScene extends Scene {
         });
 
         this.events.on('shutdown', () => {
-            if (this.gameEvents) {
-                this.gameEvents.off('show-gameover');
-                this.gameEvents.off('update-hud');
-                this.gameEvents.off('select-coin-value');
-                this.gameEvents.off('show-deposit-panel');
-                this.gameEvents.off('show-production-panel');
-                this.gameEvents.off('show-order-selection');
-                this.gameEvents.off('show-card-overlay');
-                this.gameEvents.off('dismiss-card-overlay');
-            }
+            this.gameEvents.off('show-gameover');
+            this.gameEvents.off('update-hud');
+            this.gameEvents.off('select-coin-value');
+            this.gameEvents.off('show-deposit-panel');
+            this.gameEvents.off('show-production-panel');
+            this.gameEvents.off('show-order-selection');
+            this.gameEvents.off('show-card-overlay');
+            this.gameEvents.off('dismiss-card-overlay');
+            this.gameEvents.off('restart-game'); // UIScene also listens for restart indirectly? No, but Game does.
         });
     }
 
@@ -351,21 +359,12 @@ export class UIScene extends Scene {
 
         this.gameOverPanel = new GameOverPanel(
             this,
-            true,
-            0,
             () => {
                 this.gameEvents.emit('restart-game');
                 this.enableTopButtonsOnly();
                 this.gameOverPanel?.destroy();
                 this.gameOverPanel = null;
             },
-            () => {
-                this.gameEvents.emit('quit-game');
-                this.enableTopButtonsOnly();
-                this.gameOverPanel?.destroy();
-                this.gameOverPanel = null;
-            },
-            undefined,
             data.winnerName,
             data.playerStats
         );
@@ -406,6 +405,31 @@ export class UIScene extends Scene {
         this.settingsButton.sprite.setOrigin(0.5, 0);
         this.settingsButton.setDepth(UILayers.UI_BUTTONS);
         this.settingsButton.setVisible(false);
+    }
+
+    private setupDebugButton() {
+        const { height } = this.scale;
+        const debugBtn = this.add.container(20, height - 60);
+        debugBtn.setDepth(UILayers.UI_BUTTONS);
+
+        const bg = this.add.rectangle(0, 0, 150, 40, 0xff0000, 0.8).setOrigin(0);
+        const txt = this.add.text(75, 20, 'DEBUG PANEL', {
+            fontSize: '16px',
+            color: '#ffffff',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+
+        debugBtn.add([bg, txt]);
+        bg.setInteractive({ useHandCursor: true })
+            .on('pointerdown', () => {
+                this.gameEvents.emit('show-gameover', {
+                    winnerName: 'DEBUG PLAYER WINS!',
+                    playerStats: [
+                        { name: 'Player 1', finalCash: 1200, startingCash: 1000, invested: 100, returns: 50, production: 200, sales: 500, indulgence: 50, maintenance: 30, fees: 50 },
+                        { name: 'Player 2', finalCash: 800, startingCash: 1000, invested: 150, returns: 30, production: 250, sales: 300, indulgence: 80, maintenance: 40, fees: 60 }
+                    ]
+                });
+            });
     }
 
     private handleGameOverUI() { }

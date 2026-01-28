@@ -151,7 +151,7 @@ export class Game extends Scene {
                 player.container.add(handle);
                 this.slotHandles.push(handle);
 
-                handle.on('drag', (pointer: any, dragX: number, dragY: number) => {
+                handle.on('drag', (_pointer: any, dragX: number, dragY: number) => {
                     handle.x = dragX;
                     handle.y = dragY;
                     GameConfig.production.slots[index].x = Math.round(dragX);
@@ -287,6 +287,31 @@ export class Game extends Scene {
             if (this.gameState !== GameState.IDLE) return;
             const allOrders = this.deckManager.getAllCardsFromDeck('order');
             this.events.emit('show-order-selection', { orders: allOrders });
+        });
+
+        this.events.on('restart-game', () => {
+            this.deckManager.resetDecks();
+            this.currentPlayerIndex = 0;
+            this.players = [];
+
+            // Stop UI scene to ensure it also re-initializes
+            if (this.scene.isActive('UIScene')) {
+                this.scene.stop('UIScene');
+            }
+
+            this.scene.restart();
+        });
+
+        this.events.once('shutdown', () => {
+            this.events.off('draw-action-card');
+            this.events.off('spawn-coin');
+            this.events.off('card-action-confirm');
+            this.events.off('card-action-skip');
+            this.events.off('request-sub-draw');
+            this.events.off('coin-destroyed');
+            this.events.off('restart-game');
+            this.events.off('order-selected');
+            this.events.off('show-order-selection');
         });
     }
 

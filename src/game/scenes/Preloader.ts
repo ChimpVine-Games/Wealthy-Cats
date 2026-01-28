@@ -90,6 +90,7 @@ export class Preloader extends Scene {
         this.load.setPath('assets/loading');
         this.load.image('cv_logo_text', 'Text_CV_Logo.png');
 
+        /*
         this.load.setPath('assets/audio');
         this.load.audio('bg_music', 'bg_music.mp3');
         this.load.audio('success', 'success.mp3');
@@ -97,6 +98,7 @@ export class Preloader extends Scene {
         this.load.audio('level_win', 'level_win.mp3');
         this.load.audio('game_over', 'game_over.mp3');
         this.load.audio('fail', 'failure.mp3');
+        */
 
         this.load.once('complete', () => {
             this.assetsLoaded = true;
