@@ -52,7 +52,6 @@ export class UIScene extends Scene {
         this.setupButtons(50);
         this.setupDrawButton();
         this.setupHUD();
-        this.setupDebugButton(); // Add debug shortcut button
 
         this.gameEvents.on('show-gameover', (data: any) => this.showGameOver(data), this);
         this.gameEvents.on('update-hud', (data: any) => this.onUpdateHUD(data), this);
@@ -407,30 +406,6 @@ export class UIScene extends Scene {
         this.settingsButton.setVisible(false);
     }
 
-    private setupDebugButton() {
-        const { height } = this.scale;
-        const debugBtn = this.add.container(20, height - 60);
-        debugBtn.setDepth(UILayers.UI_BUTTONS);
-
-        const bg = this.add.rectangle(0, 0, 150, 40, 0xff0000, 0.8).setOrigin(0);
-        const txt = this.add.text(75, 20, 'DEBUG PANEL', {
-            fontSize: '16px',
-            color: '#ffffff',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
-
-        debugBtn.add([bg, txt]);
-        bg.setInteractive({ useHandCursor: true })
-            .on('pointerdown', () => {
-                this.gameEvents.emit('show-gameover', {
-                    winnerName: 'DEBUG PLAYER WINS!',
-                    playerStats: [
-                        { name: 'Player 1', finalCash: 1200, startingCash: 1000, invested: 100, returns: 50, production: 200, sales: 500, indulgence: 50, maintenance: 30, fees: 50 },
-                        { name: 'Player 2', finalCash: 800, startingCash: 1000, invested: 150, returns: 30, production: 250, sales: 300, indulgence: 80, maintenance: 40, fees: 60 }
-                    ]
-                });
-            });
-    }
 
     private handleGameOverUI() { }
 
